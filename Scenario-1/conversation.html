@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RTA-Hub 测试日志 - 场景一</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+        h1 { color: #333; border-bottom: 2px solid #0066cc; padding-bottom: 10px; }
+        h2 { color: #555; margin-top: 30px; }
+        h3 { color: #666; }
+        .round { background: white; border-radius: 8px; padding: 20px; margin: 20px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .screenshot { margin: 15px 0; }
+        .screenshot img { max-width: 100%; border: 1px solid #ddd; border-radius: 4px; }
+        .user-input { background: #e3f2fd; padding: 10px; border-radius: 4px; border-left: 4px solid #2196f3; margin: 10px 0; }
+        .ai-output { background: #f1f8e9; padding: 10px; border-radius: 4px; border-left: 4px solid #4caf50; margin: 10px 0; white-space: pre-wrap; }
+        .panel-changes { background: #fff3e0; padding: 10px; border-radius: 4px; border-left: 4px solid #ff9800; margin: 10px 0; }
+        table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background: #f5f5f5; }
+        .bug { background: #ffebee; border: 2px solid #f44336; padding: 15px; border-radius: 8px; margin: 20px 0; }
+        .bug-title { color: #d32f2f; font-weight: bold; font-size: 18px; }
+        code { background: #f5f5f5; padding: 2px 6px; border-radius: 3px; }
+        .status-confirmed { color: #4caf50; font-weight: bold; }
+        .status-assumed { color: #ff9800; font-weight: bold; }
+        .status-missing { color: #f44336; }
+        .info-box { background: #e8eaf6; padding: 10px; border-radius: 4px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>RTA-Hub 测试日志 - 场景一：标准 L 型厨房</h1>
+    
+    <div class="round">
+        <h2>测试信息</h2>
+        <ul>
+            <li><strong>测试场景</strong>: 场景一：标准 10' × 12' L 型厨房</li>
+            <li><strong>测试模式</strong>: 被动式用户（只回答 AI 提出的问题）</li>
+            <li><strong>测试日期</strong>: 2026-08-16</li>
+            <li><strong>测试目标 URL</strong>: http://rta-hub.inkpath.cc</li>
+        </ul>
+    </div>
+
+    <!-- 第 1 轮 -->
+    <div class="round" id="round1">
+        <h2>第 1 轮 - 选择厨房布局</h2>
+        
+        <h3>用户输入</h3>
+        <div class="user-input">
+            点击 "L-shape" 按钮
+        </div>
+        
+        <h3>AI 回复</h3>
+        <div class="ai-output">Applied the "floorplan-minimal" template as a starting point: L-shape: North 144", East 120". 
+These are standard numbers, not measured — please confirm below.
+
+Got it — L-shape it is. I've got your North wall at 144" and East wall at 120", plus the plumbing and window noted.
+
+Next thing I need: Is there a gas line for the range?</div>
+        
+        <h3>Confirmation Panel 变化</h3>
+        <div class="panel-changes">
+            <table>
+                <tr><th>确认项</th><th>状态</th><th>值</th><th>来源</th></tr>
+                <tr><td>Kitchen shape</td><td class="status-confirmed">confirmed</td><td>L-shape</td><td>用户输入 ✓</td></tr>
+                <tr><td>Wall North</td><td class="status-assumed">clarify</td><td>144"</td><td><strong>模板假设 ❌</strong></td></tr>
+                <tr><td>Wall East</td><td class="status-assumed">clarify</td><td>120"</td><td><strong>模板假设 ❌</strong></td></tr>
+                <tr><td>Ceiling height</td><td class="status-confirmed">confirmed</td><td>96"</td><td><strong>模板假设 ❌</strong></td></tr>
+                <tr><td>Plumbing on East</td><td class="status-assumed">clarify</td><td>offset 36", width 24"</td><td><strong>模板假设 ❌</strong></td></tr>
+                <tr><td>Window on North</td><td class="status-assumed">clarify</td><td>offset 48", width 36"</td><td><strong>模板假设 ❌</strong></td></tr>
+                <tr><td>Door on East</td><td class="status-assumed">clarify</td><td>offset 88", width 32"</td><td><strong>模板假设 ❌</strong></td></tr>
+            </table>
+        </div>
+        
+        <h3>截图</h3>
+        <div class="screenshot">
+            <img src="screenshots/round1.png" alt="第1轮截图">
+        </div>
+    </div>
+
+    <!-- BUG-001 -->
+    <div class="bug" id="bug-001">
+        <div class="bug-title">🔴 BUG-001: 模板假设被当作用户输入 (Critical)</div>
+        
+        <h4>问题描述</h4>
+        <p>用户仅输入 "L-shape"（选择布局类型），但系统将模板中的假设值放入 Confirmation Panel，并标记为 "clarify" 状态。这些值会误导用户以为 AI 已从对话中提取了这些信息。</p>
+        
+        <h4>用户实际输入</h4>
+        <p><code>L-shape</code> (仅选择布局类型)</p>
+        
+        <h4>系统错误确认的信息</h4>
+        <ul>
+            <li>Wall North = 144" — 用户从未提供此尺寸</li>
+            <li>Wall East = 120" — 用户从未提供此尺寸</li>
+            <li>Ceiling height = 96" — 用户从未提供此尺寸</li>
+            <li>Plumbing on East = offset 36", width 24" — 模板假设</li>
+            <li>Window on North = offset 48", width 36" — 模板假设</li>
+            <li>Door on East = offset 88", width 32" — 模板假设</li>
+        </ul>
+        
+        <h4>AI 行为问题</h4>
+        <p>AI 说 "I've got your North wall at 144" and East wall at 120", plus the plumbing and window noted. Thanks for that." — 仿佛用户已确认这些信息，但实际上用户只说了 "L-shape" 一个词。</p>
+        
+        <h4>预期行为</h4>
+        <p>用户只选择布局类型时，AI 应该主动询问墙长、层高等具体尺寸，而不是直接假设模板值。</p>
+        
+        <h4>严重程度</h4>
+        <p><strong>Critical</strong> — 数据质量问题，会导致用户误解系统状态。</p>
+    </div>
+
+    <!-- 第 2 轮 -->
+    <div class="round" id="round2">
+        <h2>第 2 轮 - 选择家电 + 燃气接口</h2>
+        
+        <h3>用户输入</h3>
+        <div class="user-input">
+            点击选择: Refrigerator, Range, Range hood, Dishwasher<br>
+            点击 "Done / none needed"<br>
+            输入: "no gas / electric range"
+        </div>
+        
+        <h3>AI 回复</h3>
+        <div class="ai-output">继续询问冰箱尺寸: "How wide is the Refrigerator?"</div>
+        
+        <h3>Confirmation Panel 变化</h3>
+        <div class="panel-changes">
+            <table>
+                <tr><th>确认项</th><th>状态</th><th>值</th><th>备注</th></tr>
+                <tr><td>Refrigerator</td><td class="status-assumed">assumed</td><td>width 33" (assumed)</td><td>用户未提供尺寸</td></tr>
+                <tr><td>Range</td><td class="status-assumed">assumed</td><td>width 30" (assumed)</td><td>用户未提供尺寸</td></tr>
+                <tr><td>Range hood</td><td class="status-assumed">assumed</td><td>width 30" (assumed)</td><td>用户未提供尺寸</td></tr>
+                <tr><td>Dishwasher</td><td class="status-assumed">assumed</td><td>width 24" (assumed)</td><td>用户未提供尺寸</td></tr>
+            </table>
+        </div>
+        
+        <h3>截图</h3>
+        <div class="screenshot">
+            <img src="screenshots/round2.png" alt="第2轮截图">
+        </div>
+    </div>
+
+    <!-- BUG-002 -->
+    <div class="bug" id="bug-002">
+        <div class="bug-title">🔴 BUG-002: 家电尺寸自动假设 (High)</div>
+        
+        <h4>问题描述</h4>
+        <p>用户选择家电类型后，在用户未提供具体尺寸的情况下，系统自动假设了家电尺寸（Refrigerator=33", Range=30" 等）。</p>
+        
+        <h4>用户实际输入</h4>
+        <p>点击选择了 Refrigerator, Range, Range hood, Dishwasher（仅选择类型，未提供尺寸）</p>
+        
+        <h4>系统自动假设的信息</h4>
+        <ul>
+            <li>Refrigerator = 33" (assumed)</li>
+            <li>Range = 30" (assumed)</li>
+            <li>Range hood = 30" (assumed)</li>
+            <li>Dishwasher = 24" (assumed)</li>
+        </ul>
+        
+        <h4>预期行为</h4>
+        <p>选择家电类型后，应该询问具体尺寸，而不是自动假设。</p>
+        
+        <h4>严重程度</h4>
+        <p><strong>High</strong> — 与 BUG-001 类似，都是模板假设问题。</p>
+    </div>
+
+    <!-- 第 3 轮 -->
+    <div class="round" id="round3">
+        <h2>第 3 轮 - 提供家电尺寸</h2>
+        
+        <h3>用户输入</h3>
+        <div class="user-input">
+            输入: "36" French Door Refrigerator, 30" Freestanding Range, 24" Dishwasher, 30" Under-Cabinet Hood"
+        </div>
+        
+        <h3>AI 回复</h3>
+        <div class="ai-output">
+            <div class="info-box">系统再次询问冰箱尺寸，忽略用户已提供的尺寸信息。</div>
+        </div>
+        
+        <h3>Confirmation Panel 变化</h3>
+        <div class="panel-changes">
+            <p>待确认...</p>
+        </div>
+        
+        <h3>截图</h3>
+        <div class="screenshot">
+            <img src="screenshots/round3.png" alt="第3轮截图">
+        </div>
+    </div>
+
+    <!-- BUG-003 -->
+    <div class="bug" id="bug-003">
+        <div class="bug-title">🟡 BUG-003: 重复提问已提供的信息 (Medium)</div>
+        
+        <h4>问题描述</h4>
+        <p>用户在消息中明确提供了家电尺寸（"36" French Door Refrigerator, 30" Freestanding Range..."），但 AI 仍然弹出选项询问冰箱尺寸。</p>
+        
+        <h4>用户实际输入</h4>
+        <p><code>36" French Door Refrigerator, 30" Freestanding Range, 24" Dishwasher, 30" Under-Cabinet Hood</code></p>
+        
+        <h4>AI 行为</h4>
+        <p>忽略用户输入，仍然弹出选项询问 "How wide is the Refrigerator?"</p>
+        
+        <h4>预期行为</h4>
+        <p>应该识别用户已提供的尺寸信息，直接更新 Confirmation Panel。</p>
+        
+        <h4>严重程度</h4>
+        <p><strong>Medium</strong> — 影响用户体验，但不会导致数据错误。</p>
+    </div>
+
+    <div class="round">
+        <h2>测试总结</h2>
+        <ul>
+            <li><strong>BUG-001</strong>: 模板假设被当作用户输入 (Critical)</li>
+            <li><strong>BUG-002</strong>: 家电尺寸自动假设 (High)</li>
+            <li><strong>BUG-003</strong>: 重复提问已提供的信息 (Medium)</li>
+        </ul>
+    </div>
+
+</body>
+</html>
